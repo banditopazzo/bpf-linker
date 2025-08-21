@@ -50,5 +50,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         &HashSet::new(),
     )?;
 
+    #[cfg(feature = "stream-io")]
+    {
+        let mut in_mem: Vec<u8> = Vec::new();
+        let cursor_in_mem = std::io::Cursor::new(&mut in_mem);
+        linker.link_to_writer(
+            vec![
+                LinkerInput::try_from(path)?,
+                LinkerInput::from(("my buffer", bytes)),
+            ],
+            OutputType::Object,
+            &HashSet::new(),
+            cursor_in_mem,
+        )?;
+        // Do stuff with in_mem vec...
+    }
+
     Ok(())
 }

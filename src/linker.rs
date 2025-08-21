@@ -297,6 +297,49 @@ impl Linker {
         Ok(())
     }
 
+    /// Link and write output to any Write+Seek sink (requires `stream-io` feature).
+    #[cfg(feature = "stream-io")]
+    pub fn link_to_writer(
+        &self,
+        mut inputs: Vec<LinkerInput>,
+        output_type: OutputType,
+        export_symbols: &HashSet<Cow<'static, str>>,
+        mut writer: impl std::io::Write + std::io::Seek,
+    ) -> Result<(), LinkerError> {
+        let (linked_module, target_machine) =
+            self.link(std::mem::take(&mut inputs), export_symbols)?;
+
+        // Emit directly to the provided writer using the pwrite stream shim.
+        unsafe {
+            match output_type {
+                OutputType::Assembly => target_machine
+                    .codegen_to_writer(
+                        &linked_module,
+                        llvm_sys::target_machine::LLVMCodeGenFileType::LLVMAssemblyFile,
+                        &mut writer,
+                    )
+                    .map_err(LinkerError::EmitCodeError)?,
+                OutputType::Object => target_machine
+                    .codegen_to_writer(
+                        &linked_module,
+                        llvm_sys::target_machine::LLVMCodeGenFileType::LLVMObjectFile,
+                        &mut writer,
+                    )
+                    .map_err(LinkerError::EmitCodeError)?,
+                OutputType::Bitcode => {
+                    linked_module
+                        .stream_bitcode_to_writer(writer)
+                        .map_err(|_| LinkerError::WriteBitcodeError)?;
+                }
+                OutputType::LlvmAssembly => linked_module
+                    .stream_ir_to_writer(writer)
+                    .map_err(|e| LinkerError::WriteIRError(e.to_string()))?,
+            }
+        }
+
+        Ok(())
+    }
+
     pub fn link_to_buffer(
         &self,
         inputs: Vec<LinkerInput>,

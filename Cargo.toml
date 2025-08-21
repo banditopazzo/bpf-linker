@@ -41,6 +41,9 @@ regex = { version = "1.11.1", default-features = false }
 rustc-build-sysroot = { workspace = true }
 which = { version = "8.0.0", default-features = false, features = ["real-sys", "regex"] }
 
+[build-dependencies]
+cc = "1.0"
+
 [[bin]]
 name = "bpf-linker"
 
@@ -63,6 +66,7 @@ rust-llvm-21 = [
     "llvm-21",
     "llvm-sys-21/no-llvm-linking",
 ]
+stream-io = []
 default = [
     "llvm-21",
     "rust-llvm-21",

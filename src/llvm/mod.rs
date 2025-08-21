@@ -3,6 +3,8 @@ mod di;
 mod iter;
 mod memory_buffer;
 mod module;
+#[cfg(feature = "stream-io")]
+mod pwrite_stream;
 mod target_machine;
 mod types;
 
