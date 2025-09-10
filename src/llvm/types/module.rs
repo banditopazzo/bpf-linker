@@ -6,6 +6,7 @@ use std::{
 
 use libc::c_char;
 use llvm_sys::{
+    analysis::{LLVMVerifierFailureAction, LLVMVerifyModule},
     bit_writer::LLVMWriteBitcodeToFile,
     core::{
         LLVMCreateMemoryBufferWithMemoryRangeCopy, LLVMDisposeMessage, LLVMDisposeModule,
@@ -93,6 +94,19 @@ impl<'ctx> LLVMModule<'ctx> {
     /// strips debug information, returns true if DI got stripped
     pub fn strip_debug_info(&mut self) -> bool {
         unsafe { LLVMStripModuleDebugInfo(self.module) != 0 }
+    }
+
+    pub unsafe fn verify(&self) -> Result<(), String> {
+        const ACTION: LLVMVerifierFailureAction = LLVMVerifierFailureAction::LLVMReturnStatusAction;
+
+        let (ret, message) =
+            Message::with(|message| unsafe { LLVMVerifyModule(self.module, ACTION, message) });
+
+        if ret == 1 {
+            Err(message.as_c_str().unwrap().to_str().unwrap().to_string())
+        } else {
+            Ok(())
+        }
     }
 }
 

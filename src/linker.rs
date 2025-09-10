@@ -73,6 +73,10 @@ pub enum LinkerError {
     /// LLVM cannot create a module for linking.
     #[error("failed to create module")]
     ModuleCreationError,
+
+    /// LLVM cannot create a module for linking.
+    #[error("linked module verification failed: {0}")]
+    LinkedModuleVerificationError(String),
 }
 
 /// BPF Cpu type
@@ -458,6 +462,10 @@ impl Linker {
                 .write_ir_to_path(&path)
                 .map_err(LinkerError::WriteIRError)?;
         };
+
+        if let Err(err) = unsafe { module.verify() } {
+            return Err(LinkerError::LinkedModuleVerificationError(err));
+        }
 
         Ok((module, target_machine))
     }
